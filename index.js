@@ -2,7 +2,6 @@ const express = require('express');
 const multer = require('multer');
 const { S3Client, PutObjectCommand, GetObjectCommand ,ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const { ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const app = express();
 const upload = multer({ dest: 'uploads/' });
