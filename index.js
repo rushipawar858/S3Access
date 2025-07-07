@@ -12,6 +12,30 @@ const REGION = 'ap-south-1';
 const s3 = new S3Client({ region: REGION }); 
 
 // Upload image to S3
+// app.post('/upload', upload.single('image'), async (req, res) => {
+//   try {
+//     const file = req.file;
+//     if (!file) return res.status(400).json({ error: 'No image provided' });
+
+//     const uploadParams = {
+//       Bucket: BUCKET_NAME,
+//       Key: file.originalname,
+//       Body: fs.createReadStream(file.path),
+//       ContentType: file.mimetype,
+//     };
+
+//     await s3.send(new PutObjectCommand(uploadParams));
+//     fs.unlinkSync(file.path);
+
+//     res.status(201).json({ message: 'Image uploaded successfully', key: file.originalname });
+
+//   } catch (err) {
+//     console.error('UPLOAD ERROR:', err);
+//     res.status(500).json({ error: 'Upload failed', details: err.message });
+//   }
+// });
+
+
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
     const file = req.file;
@@ -25,9 +49,22 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     };
 
     await s3.send(new PutObjectCommand(uploadParams));
-    fs.unlinkSync(file.path);
+    fs.unlinkSync(file.path); // delete local temp file
 
-    res.status(201).json({ message: 'Image uploaded successfully', key: file.originalname });
+    // ✅ Generate signed URL valid for 45 minutes
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: file.originalname,
+    });
+
+    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 2700 }); // 2700 sec = 45 min
+
+    res.status(201).json({
+      message: 'Image uploaded successfully',
+      key: file.originalname,
+      signedUrl: signedUrl,
+      expiresInMinutes: 45
+    });
 
   } catch (err) {
     console.error('UPLOAD ERROR:', err);
