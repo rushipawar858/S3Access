@@ -17,7 +17,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ error: 'No image file provided' });
+      return res.status(404).json({ error: 'No image file provided' });
     }
 
     const uploadParams = {
@@ -28,11 +28,11 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     };
 
     await s3.send(new PutObjectCommand(uploadParams));
-    fs.unlinkSync(file.path); // remove temp file
-    res.json({ message: 'Image uploaded successfully', key: file.originalname });
+    fs.unlinkSync(file.path);
+    res.status(201).res.json({ message: 'Image uploaded successfully', key: file.originalname });
 
   } catch (err) {
-    console.error('UPLOAD ERROR:', err);  // 👈 key line to see exact error in terminal
+    console.error('UPLOAD ERROR:', err);
     res.status(500).json({ error: 'Upload failed', details: err.message });
   }
 });
@@ -50,6 +50,24 @@ app.get('/image/:key', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch image' });
+  }
+});
+
+//get all images
+app.get('/images', async (req, res) => {
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME
+    });
+
+    const response = await s3.send(command);
+
+    const keys = (response.Contents || []).map(obj => obj.Key);
+
+    res.json({ images: keys });
+  } catch (err) {
+    console.error('LIST ERROR:', err);
+    res.status(500).json({ error: 'Failed to list images', details: err.message });
   }
 });
 
